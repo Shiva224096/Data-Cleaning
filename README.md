@@ -45,7 +45,6 @@ uvicorn main:app --reload --port 8000
 ### 2. Frontend Setup
 
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
@@ -55,26 +54,25 @@ The app will be available at **http://localhost:3000**
 ## Project Structure
 
 ```
-├── frontend/               # React + Vite SPA
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Wizard/         # Step indicator
-│   │   │   ├── FileUpload/     # Drag & drop upload
-│   │   │   ├── Profiling/      # ML scanning loader
-│   │   │   ├── ColumnMapping/  # Column type assignment
-│   │   │   ├── CleaningProgress/ # Real-time progress
-│   │   │   ├── Dashboard/      # Issue summary & charts
-│   │   │   ├── DataGrid/       # AG Grid spreadsheet
-│   │   │   └── Export/         # Download clean data
-│   │   └── utils/api.js        # API client
-│   └── vite.config.js          # Proxy to backend
-│
+├── src/                    # React + Vite Frontend SPA
+│   ├── components/
+│   │   ├── Wizard/         # Step indicator
+│   │   ├── FileUpload/     # Drag & drop upload
+│   │   ├── Profiling/      # ML scanning loader
+│   │   ├── ColumnMapping/  # Column type assignment
+│   │   ├── CleaningProgress/ # Real-time progress
+│   │   ├── Dashboard/      # Issue summary & charts
+│   │   ├── DataGrid/       # AG Grid spreadsheet
+│   │   └── Export/         # Download clean data
+│   └── utils/api.js        # API client
 ├── backend/                # FastAPI Python API
 │   ├── routers/            # API endpoints
 │   ├── services/           # Business logic
 │   ├── validators/         # 14 validator modules
 │   ├── ml/                 # Column type classifier
 │   └── main.py             # App entry point
+├── index.html              # React App Entry
+└── vite.config.js          # Proxy to backend
 ```
 
 ## Supported Data Types
