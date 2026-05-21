@@ -1,0 +1,142 @@
+/* ===== Wizard Layout ===== */
+.wizard-container {
+  padding: 20px 32px;
+  background: rgba(12, 17, 32, 0.5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.wizard-track {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.wizard-progress-bg {
+  position: absolute;
+  top: 22px;
+  left: 40px;
+  right: 40px;
+  height: 3px;
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
+.wizard-progress-fill {
+  position: absolute;
+  top: 22px;
+  left: 40px;
+  height: 3px;
+  background: var(--accent-gradient);
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+  max-width: calc(100% - 80px);
+}
+
+.wizard-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: default;
+  padding: 0;
+  min-width: 80px;
+  outline: none;
+}
+
+.wizard-step.clickable {
+  cursor: pointer;
+}
+
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-default);
+  transition: all var(--transition-base);
+  position: relative;
+  font-size: 18px;
+}
+
+.wizard-step.active .step-circle {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.1);
+  transform: scale(1.1);
+}
+
+.wizard-step.completed .step-circle {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.wizard-step.clickable:hover .step-circle {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.step-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-primary);
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+.step-icon {
+  line-height: 1;
+}
+
+.step-check {
+  color: #fff;
+}
+
+.step-label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.wizard-step.active .step-label {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.wizard-step.completed .step-label {
+  color: var(--success);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .wizard-container {
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .wizard-track {
+    min-width: 600px;
+  }
+  .step-label {
+    font-size: 10px;
+  }
+  .step-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+}

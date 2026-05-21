@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pandas
+openpyxl
+xlrd
+email-validator
+python-dateutil
+validators
+phonenumbers
+python-stdnum
+thefuzz[speedup]
+scikit-learn
+numpy
+websockets
