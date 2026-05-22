@@ -41,10 +41,25 @@ export const getProfilingResults = async (fileId) => {
 
 // Cleaning
 export const startCleaning = async (fileId, mapping, options = {}) => {
+  // Transform frontend mapping object into backend's expected format.
+  // Frontend: { "col_name": { profile: "email", region: "US", fuzzy_threshold: 85 } }
+  // Backend:  { file_id, column_mappings: [{ column: "col_name", type: "email", params: { region: "US" } }] }
+  const columnMappings = Object.entries(mapping)
+    .filter(([, val]) => val.profile !== 'skip')
+    .map(([colName, val]) => {
+      const params = {};
+      if (val.region) params.region = val.region;
+      if (val.fuzzy_threshold) params.fuzzy_threshold = val.fuzzy_threshold;
+      return {
+        column: colName,
+        type: val.profile || 'text',
+        params,
+      };
+    });
+
   const response = await api.post(`/clean/start`, {
     file_id: fileId,
-    column_mapping: mapping,
-    options,
+    column_mappings: columnMappings,
   });
   return response.data;
 };

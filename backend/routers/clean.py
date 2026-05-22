@@ -115,3 +115,71 @@ async def start_cleaning(request: CleanRequest):
         "columns_processed": result["columns_processed"],
         "summary": result["summary"],
     }
+
+
+@router.get("/clean/{file_id}/results")
+async def cleaning_results(file_id: str):
+    if file_id not in sessions:
+        raise HTTPException(status_code=404, detail="File not found.")
+    session = sessions[file_id]
+    cleaning = session.get("cleaning_result")
+    if cleaning is None:
+        raise HTTPException(status_code=400, detail="Cleaning not yet run.")
+
+    # Read the original data to send to the frontend
+    df = read_file_to_dataframe(session["path"], session["extension"])
+    data = df.to_dict(orient="records")
+
+    # Transform column_results into per-column, per-row issue strings
+    # Frontend expects: { col_name: { row_idx: "issue description", ... }, ... }
+    issues = {}
+    for col_name, col_records in cleaning.get("column_results", {}).items():
+        col_issues = {}
+        for idx, record in enumerate(col_records):
+            if not record.get("is_valid", True):
+                desc = record.get("issue_description", "")
+                if desc:
+                    col_issues[idx] = desc
+        if col_issues:
+            issues[col_name] = col_issues
+
+    return {
+        "data": data,
+        "issues": issues,
+        "summary": cleaning.get("summary", []),
+        "total_issues": cleaning.get("total_issues", 0),
+        "columns_processed": cleaning.get("columns_processed", 0),
+        "issue_status": cleaning.get("issue_status", []),
+    }
+
+
+class CellEditRequest(BaseModel):
+    row_index: int
+    column: str
+    value: str
+
+
+@router.post("/clean/{file_id}/edit")
+async def edit_cell(file_id: str, edit: CellEditRequest):
+    if file_id not in sessions:
+        raise HTTPException(status_code=404, detail="File not found.")
+    session = sessions[file_id]
+
+    # Read, update, and write back the file
+    df = read_file_to_dataframe(session["path"], session["extension"])
+    if edit.column not in df.columns:
+        raise HTTPException(status_code=400, detail=f"Column '{edit.column}' not found.")
+    if edit.row_index < 0 or edit.row_index >= len(df):
+        raise HTTPException(status_code=400, detail=f"Row index {edit.row_index} out of range.")
+
+    df.at[edit.row_index, edit.column] = edit.value
+
+    # Save back
+    ext = session["extension"]
+    if ext == ".csv":
+        df.to_csv(session["path"], index=False)
+    else:
+        df.to_excel(session["path"], index=False)
+
+    return {"status": "ok", "row_index": edit.row_index, "column": edit.column, "value": edit.value}
+

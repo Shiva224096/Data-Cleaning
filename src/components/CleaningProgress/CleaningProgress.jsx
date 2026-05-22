@@ -32,65 +32,69 @@ function CleaningProgress({ fileId, columnMapping, onComplete }) {
 
     const initCleaning = async () => {
       try {
-        // Start cleaning via REST
-        const response = await startCleaning(fileId, columnMapping);
-        if (!isActive) return;
-
-        setTotalColumns(response.total_columns || Object.keys(columnMapping).length);
+        // Start cleaning via REST — this is synchronous, cleaning is done
+        // by the time the response returns.
         setStatus('cleaning');
 
-        // Connect WebSocket for progress
+        // Animate progress while waiting for the synchronous call
+        const fakeProgress = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 90) return prev;
+            return prev + Math.random() * 10;
+          });
+          setMessages(prev => {
+            const msgs = [
+              'Starting cleaning engine...',
+              'Validating column data...',
+              'Running type checks...',
+              'Checking data patterns...',
+              'Identifying issues...',
+              'Processing results...',
+            ];
+            const nextMsg = msgs[Math.min(prev.length, msgs.length - 1)];
+            return [...prev, {
+              text: nextMsg,
+              time: new Date().toLocaleTimeString(),
+              type: 'progress',
+            }];
+          });
+        }, 1500);
+
+        const response = await startCleaning(fileId, columnMapping);
+        clearInterval(fakeProgress);
+
+        if (!isActive) return;
+
+        setTotalColumns(response.columns_processed || Object.keys(columnMapping).length);
+        setProcessedColumns(response.columns_processed || Object.keys(columnMapping).length);
+
+        // Cleaning is done — now fetch the full results
+        setCurrentTask('Fetching cleaned data...');
+        setProgress(95);
+
         try {
-          const ws = createCleaningSocket(fileId);
-          wsRef.current = ws;
-
-          ws.onmessage = (event) => {
-            if (!isActive) return;
-            try {
-              const data = JSON.parse(event.data);
-
-              if (data.type === 'progress') {
-                setCurrentTask(data.message);
-                setProcessedColumns(data.processed || 0);
-                setProgress(data.progress || 0);
-                setMessages(prev => [...prev, {
-                  text: data.message,
-                  time: new Date().toLocaleTimeString(),
-                  type: 'progress',
-                }]);
-              } else if (data.type === 'completed') {
-                setStatus('completed');
-                setProgress(100);
-                clearInterval(timerRef.current);
-
-                // Fetch results
-                getCleaningResults(fileId).then(results => {
-                  if (isActive) {
-                    setTimeout(() => onComplete(results), 1000);
-                  }
-                });
-              } else if (data.type === 'error') {
-                setError(data.message);
-                setStatus('error');
-              }
-            } catch (e) {
-              // Ignore parse errors
-            }
-          };
-
-          ws.onerror = () => {
-            // Fallback: poll for results
-            pollForResults();
-          };
-
-          ws.onclose = () => {
-            if (status !== 'completed' && isActive) {
-              pollForResults();
-            }
-          };
-        } catch (wsErr) {
-          // WebSocket not available, poll instead
-          pollForResults();
+          const results = await getCleaningResults(fileId);
+          if (isActive) {
+            setStatus('completed');
+            setProgress(100);
+            clearInterval(timerRef.current);
+            setCurrentTask('Cleaning complete!');
+            setTimeout(() => onComplete(results), 1000);
+          }
+        } catch (fetchErr) {
+          // If results endpoint fails, still pass what we have from the start response
+          if (isActive) {
+            setStatus('completed');
+            setProgress(100);
+            clearInterval(timerRef.current);
+            setCurrentTask('Cleaning complete!');
+            setTimeout(() => onComplete({
+              data: [],
+              issues: {},
+              summary: response.summary || [],
+              total_issues: response.total_issues || 0,
+            }), 1000);
+          }
         }
       } catch (err) {
         if (isActive) {
@@ -100,30 +104,10 @@ function CleaningProgress({ fileId, columnMapping, onComplete }) {
       }
     };
 
-    const pollForResults = () => {
-      const pollInterval = setInterval(async () => {
-        try {
-          const results = await getCleaningResults(fileId);
-          if (results && results.data && isActive) {
-            clearInterval(pollInterval);
-            setStatus('completed');
-            setProgress(100);
-            clearInterval(timerRef.current);
-            setTimeout(() => onComplete(results), 1000);
-          }
-        } catch (e) {
-          // Keep polling
-          setProgress(prev => Math.min(prev + 5, 90));
-          setProcessedColumns(prev => prev + 1);
-        }
-      }, 2000);
-    };
-
     initCleaning();
 
     return () => {
       isActive = false;
-      if (wsRef.current) wsRef.current.close();
       clearInterval(timerRef.current);
     };
   }, [fileId, columnMapping, onComplete]);
