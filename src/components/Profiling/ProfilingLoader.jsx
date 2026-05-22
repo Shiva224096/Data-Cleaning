@@ -43,14 +43,27 @@ function ProfilingLoader({ fileId, onComplete }) {
     // Start profiling
     const initProfiling = async () => {
       try {
-        await startProfiling(fileId);
+        // The backend POST /profile/{file_id} is synchronous and returns
+        // the full profiling result directly, so use it as a fast path.
+        const directResult = await startProfiling(fileId);
         setStatus('processing');
 
-        // Poll for completion
+        // If the direct response already contains profile data, use it
+        if (directResult && directResult.profile) {
+          setProgress(100);
+          setStatus('completed');
+          setTimeout(() => {
+            onComplete(directResult);
+          }, 800);
+          return;
+        }
+
+        // Fallback: poll for completion
         pollingRef.current = setInterval(async () => {
           try {
             const statusResult = await getProfilingStatus(fileId);
-            if (statusResult.status === 'completed') {
+            // Backend returns "complete" (not "completed")
+            if (statusResult.status === 'complete' || statusResult.status === 'completed') {
               clearInterval(pollingRef.current);
               const results = await getProfilingResults(fileId);
               setProgress(100);
