@@ -41,7 +41,29 @@ function App() {
   }, []);
 
   const handleProfilingComplete = useCallback((data) => {
-    setProfileData(data);
+    // Transform backend response into the shape ColumnMapping expects.
+    // Backend returns: { profile: [...], column_predictions: [...], columns: <count> }
+    // ColumnMapping expects: { columns: [{ name, dtype, sample_values, suggested_profile, confidence, suggested_label }, ...] }
+    const profileArray = data.profile || [];
+    const predictions = data.column_predictions || [];
+
+    const columns = profileArray.map((col, i) => {
+      const pred = predictions[i] || {};
+      return {
+        name: col.column_name,
+        dtype: col.dtype,
+        sample_values: col.sample_values || [],
+        suggested_profile: pred.predicted_type || 'string',
+        suggested_label: pred.predicted_type || 'Text',
+        confidence: pred.confidence || 0,
+        missing_count: col.missing_count,
+        missing_pct: col.missing_pct,
+        unique_count: col.unique_count,
+        top_values: col.top_values,
+      };
+    });
+
+    setProfileData({ ...data, columns });
     setCurrentStep(2);
   }, []);
 
