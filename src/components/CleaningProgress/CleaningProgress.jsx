@@ -31,34 +31,34 @@ function CleaningProgress({ fileId, columnMapping, onComplete }) {
     let isActive = true;
 
     const initCleaning = async () => {
+      // Animate progress while waiting for the synchronous call
+      const fakeProgress = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 10;
+        });
+        setMessages(prev => {
+          const msgs = [
+            'Starting cleaning engine...',
+            'Validating column data...',
+            'Running type checks...',
+            'Checking data patterns...',
+            'Identifying issues...',
+            'Processing results...',
+          ];
+          const nextMsg = msgs[Math.min(prev.length, msgs.length - 1)];
+          return [...prev, {
+            text: nextMsg,
+            time: new Date().toLocaleTimeString(),
+            type: 'progress',
+          }];
+        });
+      }, 1500);
+
       try {
         // Start cleaning via REST — this is synchronous, cleaning is done
         // by the time the response returns.
         setStatus('cleaning');
-
-        // Animate progress while waiting for the synchronous call
-        const fakeProgress = setInterval(() => {
-          setProgress(prev => {
-            if (prev >= 90) return prev;
-            return prev + Math.random() * 10;
-          });
-          setMessages(prev => {
-            const msgs = [
-              'Starting cleaning engine...',
-              'Validating column data...',
-              'Running type checks...',
-              'Checking data patterns...',
-              'Identifying issues...',
-              'Processing results...',
-            ];
-            const nextMsg = msgs[Math.min(prev.length, msgs.length - 1)];
-            return [...prev, {
-              text: nextMsg,
-              time: new Date().toLocaleTimeString(),
-              type: 'progress',
-            }];
-          });
-        }, 1500);
 
         const response = await startCleaning(fileId, columnMapping);
         clearInterval(fakeProgress);
@@ -97,8 +97,15 @@ function CleaningProgress({ fileId, columnMapping, onComplete }) {
           }
         }
       } catch (err) {
+        clearInterval(fakeProgress);
         if (isActive) {
-          setError(err.response?.data?.detail || 'Failed to start cleaning');
+          const detail = err.response?.data?.detail || 'Failed to start cleaning';
+          // Provide a friendlier message for session expiry
+          const isSessionExpired = detail.includes('not found') || detail.includes('Upload first');
+          setError(isSessionExpired
+            ? 'Your session has expired (the server may have restarted). Please re-upload your file.'
+            : detail
+          );
           setStatus('error');
         }
       }
