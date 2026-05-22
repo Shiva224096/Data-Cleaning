@@ -26,7 +26,9 @@ from validators import (
 from config import ISSUE_SEPARATOR
 
 # Map type name -> validator module
+# Includes aliases for frontend profile names (e.g. 'mobile_phone' -> phone_validator)
 VALIDATOR_MAP: dict[str, Any] = {
+    # Core types
     "email": email_validator,
     "phone": phone_validator,
     "name": name_validator,
@@ -46,10 +48,28 @@ VALIDATOR_MAP: dict[str, Any] = {
     "hex_color": identifier_validator,
     "zip_code": zip_validator,
     "text": text_validator,
+    # Frontend profile aliases
+    "mobile_phone": phone_validator,
+    "landline": phone_validator,
+    "first_name": name_validator,
+    "last_name": name_validator,
+    "company_name": company_validator,
+    "iban": financial_validator,
+    "credit_card": financial_validator,
+    "currency": financial_validator,
+    "ipv4": ip_validator,
+    "ipv6": ip_validator,
+    "string": text_validator,
+    "integer": number_validator,
+    "float": number_validator,
+    "datetime": date_validator,
 }
 
 # Validators that need a sub_type kwarg
-SUB_TYPE_VALIDATORS = {"pan", "gst", "ssn", "uuid", "isbn", "vin", "mac_address", "hex_color"}
+SUB_TYPE_VALIDATORS = {
+    "pan", "gst", "ssn", "uuid", "isbn", "vin", "mac_address", "hex_color",
+    "iban", "credit_card", "currency", "ipv4", "ipv6",
+}
 
 
 async def run_cleaning(
